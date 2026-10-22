@@ -26,7 +26,7 @@ const PALABRAS_COMENTARIO = 12; // un enlace con un comentario corto es un enlac
 export const AYUDA = [
   '<b>OKT · captura al segundo cerebro</b>',
   '',
-  'Mándame y lo dejo en la bandeja de tu vault (se baja a la PC con <code>okt telegram bajar</code> o al abrir Claude Code en el vault):',
+  'Mándame y lo dejo en la bandeja de tu vault (se baja a la PC con <code>okt telegram bajar</code> o al abrir Claude Code o Antigravity en el vault):',
   '• Texto o <code>/nota texto</code>: una nota.',
   '• Nota de voz: la transcribo y guardo el texto.',
   '• Un enlace (web o YouTube): queda para ingerirlo con la skill capturar.',

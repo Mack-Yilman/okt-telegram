@@ -102,8 +102,11 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
   const claveEspera = `espera:${chat}`;
   const espera = (await env.COLA.get(claveEspera)) as Espera | null;
   const decision = clasificar(m, sello(fecha, env.TZ), espera);
-  // Cualquier mensaje consume la espera de /tarea o /nota (o la cancela, si es un comando).
-  if (espera) await env.COLA.delete(claveEspera).catch(() => {});
+  // Cualquier mensaje consume la espera de /tarea o /nota (o la cancela, si es un comando). Si el mensaje se encola,
+  // la espera se quita después de guardarlo: si KV falla, el reintento de Telegram sigue siendo una tarea.
+  const consumirEspera = async () => {
+    if (espera) await env.COLA.delete(claveEspera).catch(() => {});
+  };
 
   if (decision.accion === 'esperar') {
     await env.COLA.put(claveEspera, decision.tipo, { expirationTtl: TTL_ESPERA });
@@ -114,6 +117,7 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
 
   if (decision.accion === 'responder' || decision.accion === 'estado') {
     const texto = decision.accion === 'estado' ? textoEstado(await contar(env.COLA)) : decision.texto;
+    await consumirEspera();
     await avisar(texto);
     await marcarVisto(env.COLA, updateId).catch(() => {});
     return new Response('ok');
@@ -122,6 +126,7 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
   let texto = decision.texto;
   if (decision.voz) {
     if (decision.voz.duracion > MAX_SEGUNDOS) {
+      await consumirEspera();
       await avisar('La nota de voz pasa de 10 minutos: divídela en partes más cortas.');
       await marcarVisto(env.COLA, updateId).catch(() => {});
       return new Response('ok');
@@ -136,6 +141,7 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
     // La leyenda (si la hay) va antes de la transcripción.
     texto = [decision.texto, transcripcion].filter(Boolean).join('\n\n');
     if (!transcripcion) {
+      await consumirEspera();
       await avisar('No pude transcribir la nota de voz: reenvíala o escríbela.');
       await marcarVisto(env.COLA, updateId).catch(() => {});
       return new Response('ok');
@@ -157,10 +163,11 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
     log('kv_error', { error: String(e) });
     return new Response('error', { status: 500 });
   }
+  await consumirEspera();
 
   if (sensible) {
     await avisar(
-      `⚠️ Parece ${esc(sensible.que)}: el vault no guarda datos de pacientes. Quedó retenido en la cola: en la PC solo se escribe con <code>okt telegram bajar --forzar</code>, o quítalo con <code>okt telegram descartar ${el.id}</code>.`,
+      `⚠️ Parece ${esc(sensible.que)}: el vault no guarda datos de pacientes. Quedó retenido en la cola: si no lo es, en la PC se escribe con <code>okt telegram bajar --forzar ${el.id}</code>; si lo es, quítalo con <code>okt telegram descartar ${el.id}</code>.`,
     );
   } else if (decision.voz) {
     const vista = texto.length > 300 ? `${texto.slice(0, 300)}…` : texto;
@@ -173,5 +180,5 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
 
 function textoEstado(n: number): string {
   if (n === 0) return 'La cola está vacía: todo está en tu vault.';
-  return `${n} ${n === 1 ? 'elemento espera' : 'elementos esperan'} en la cola. Se bajan con <code>okt telegram bajar</code> o al abrir Claude Code en el vault.`;
+  return `${n} ${n === 1 ? 'elemento espera' : 'elementos esperan'} en la cola. Se bajan con <code>okt telegram bajar</code> o al abrir Claude Code o Antigravity en el vault.`;
 }
