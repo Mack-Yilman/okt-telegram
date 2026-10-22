@@ -51,6 +51,21 @@ describe('webhook /telegram', () => {
     expect(tg.enviados[0]!.text).toMatch(/okt telegram descartar/);
   });
 
+  it('también revisa el nombre del archivo', async () => {
+    const { env, kv } = fakeEnv();
+    const tg = fakeTelegram();
+    await manejar(webhook(update(30, { document: { file_id: 'd1', file_name: 'Paciente Juan Perez - HC 45892.pdf', mime_type: 'application/pdf' } })), env, tg.fetchFn);
+    expect(elementoDe(kv)).toMatchObject({ sensible: true });
+    expect(tg.enviados[0]!.text).toMatch(/datos de pacientes/);
+  });
+
+  it('una nota de voz con leyenda guarda la leyenda y la transcripción', async () => {
+    const { env, kv } = fakeEnv({ ai: fakeAi({ text: 'Hoy vimos betabloqueantes' }) });
+    const tg = fakeTelegram({ v1: { path: 'voice/file_1.oga', bytes: 'x' } });
+    await manejar(webhook(update(31, { caption: 'Clase 3', voice: { file_id: 'v1', duration: 5 } })), env, tg.fetchFn);
+    expect(elementoDe(kv).texto).toBe('Clase 3\n\nHoy vimos betabloqueantes');
+  });
+
   it('transcribe la voz con Whisper en español y encola el texto', async () => {
     const ai = fakeAi({ text: '  Recordar la guía  ' });
     const { env, kv } = fakeEnv({ ai });
@@ -112,7 +127,7 @@ describe('webhook /telegram', () => {
     expect(tg.enviados[2]!.text).toMatch(/2 elementos/);
   });
 
-  it('si KV falla, avisa y responde 500 para que Telegram reintente', async () => {
+  it('si KV falla, responde 500 sin avisar: Telegram reintenta y el ✓ llega cuando se guarde', async () => {
     const { env, kv } = fakeEnv();
     kv.put = async () => {
       throw new Error('KV caído');
@@ -120,7 +135,7 @@ describe('webhook /telegram', () => {
     const tg = fakeTelegram();
     const r = await manejar(webhook(update(19, { text: 'hola' })), env, tg.fetchFn);
     expect(r.status).toBe(500);
-    expect(tg.enviados[0]!.text).toMatch(/No pude guardarlo/);
+    expect(tg.enviados).toHaveLength(0);
   });
 
   it('un cuerpo que no es JSON no rompe nada', async () => {

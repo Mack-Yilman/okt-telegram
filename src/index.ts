@@ -113,14 +113,16 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
       await marcarVisto(env.COLA, updateId).catch(() => {});
       return new Response('ok');
     }
+    let transcripcion = '';
     try {
       const audio = await (await tg.descargar(decision.voz.file_id)).arrayBuffer();
-      texto = await transcribir(env.AI, env.WHISPER_MODEL, audio);
+      transcripcion = await transcribir(env.AI, env.WHISPER_MODEL, audio);
     } catch (e) {
       log('whisper_error', { error: String(e) });
-      texto = '';
     }
-    if (!texto) {
+    // La leyenda (si la hay) va antes de la transcripción.
+    texto = [decision.texto, transcripcion].filter(Boolean).join('\n\n');
+    if (!transcripcion) {
       await avisar('No pude transcribir la nota de voz: reenvíala o escríbela.');
       await marcarVisto(env.COLA, updateId).catch(() => {});
       return new Response('ok');
@@ -130,15 +132,16 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
   const el: Elemento = { id: idDe(Math.floor(fecha.getTime() / 1000), updateId), tipo: decision.tipo, texto, fecha: fechaLocal(fecha, env.TZ), chat_id: chat };
   if (decision.url) el.url = decision.url;
   if (decision.archivo) Object.assign(el, { archivo_key: decision.archivo.file_id, nombre: decision.archivo.nombre, mime: decision.archivo.mime });
-  const sensible = patronSensible(texto);
+  // El nombre del archivo también puede traer datos de un paciente.
+  const sensible = patronSensible([texto, el.nombre ?? ''].join('\n'));
   if (sensible) el.sensible = true;
 
   try {
     await encolar(env.COLA, el);
     await marcarVisto(env.COLA, updateId);
   } catch (e) {
+    // Sin aviso: Telegram reintenta cada 500 y un aviso por intento llenaría el chat. El ✓ es la señal.
     log('kv_error', { error: String(e) });
-    await avisar('⚠️ No pude guardarlo. Telegram lo reintentará; si no llega el ✓, reenvíalo.');
     return new Response('error', { status: 500 });
   }
 

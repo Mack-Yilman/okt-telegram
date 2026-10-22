@@ -13,6 +13,7 @@ describe('patronSensible', () => {
     ['historia clínica n° 004512', 'un número de historia clínica'],
     ['cel 987654321', 'un número de celular'],
     ['Paciente Juan Pérez con fiebre', 'el nombre de un paciente'],
+    ['Paciente JUAN PÉREZ con resultado crítico', 'el nombre de un paciente'],
   ])('detecta «%s»', (texto, que) => {
     expect(patronSensible(texto)?.que).toBe(que);
   });

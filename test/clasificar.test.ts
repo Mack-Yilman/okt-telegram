@@ -34,6 +34,13 @@ describe('clasificar', () => {
     expect(clasificar(msg({ text: largo, entities: [{ type: 'url', offset: 96, length: 24 }] }), SELLO)).toMatchObject({ tipo: 'nota' });
   });
 
+  it('los offsets de Telegram son del texto sin recortar', () => {
+    expect(clasificar(msg({ text: '\n  https://ejemplo.org/guia', entities: [{ type: 'url', offset: 3, length: 24 }] }), SELLO)).toMatchObject({
+      tipo: 'enlace',
+      url: 'https://ejemplo.org/guia',
+    });
+  });
+
   it('un enlace con texto (text_link) usa su url', () => {
     expect(clasificar(msg({ text: 'este artículo', entities: [{ type: 'text_link', offset: 0, length: 13, url: 'https://ejemplo.org/a' }] }), SELLO)).toMatchObject({
       tipo: 'enlace',
@@ -80,6 +87,7 @@ describe('clasificar', () => {
       voz: { file_id: 'v1', duracion: 42 },
     });
     expect(clasificar(msg({ audio: { file_id: 'a1', duration: 100, mime_type: 'audio/mpeg' } }), SELLO)).toMatchObject({ tipo: 'voz', voz: { file_id: 'a1', duracion: 100 } });
+    expect(clasificar(msg({ caption: 'Clase 3', audio: { file_id: 'a2', duration: 10 } }), SELLO)).toMatchObject({ tipo: 'voz', texto: 'Clase 3' });
   });
 
   it('lo que no sabe guardar (sticker, ubicación) se responde', () => {

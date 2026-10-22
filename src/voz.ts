@@ -2,9 +2,13 @@
 
 export const MAX_SEGUNDOS = 600;
 
-/** Base64 por trozos: String.fromCharCode con todo el arreglo desborda la pila en audios largos. */
+/**
+ * Base64 del audio. Usa Uint8Array.prototype.toBase64 (nativo y rápido) si el runtime lo tiene: el plan
+ * gratuito da 10 ms de CPU. Si no, por trozos (String.fromCharCode con todo el arreglo desborda la pila).
+ */
 export function base64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
+  const bytes = new Uint8Array(buf) as Uint8Array & { toBase64?: () => string };
+  if (typeof bytes.toBase64 === 'function') return bytes.toBase64();
   let binario = '';
   for (let i = 0; i < bytes.length; i += 0x8000) binario += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(binario);

@@ -31,12 +31,15 @@ export const AYUDA = [
   '• <code>/tarea texto</code>: una tarea en tu nota diaria.',
   '• <code>/estado</code>: cuántos elementos esperan.',
   '',
+  'Cada captura guardada recibe un ✓. Si no llega en un minuto, reenvíala.',
   'Sin datos de pacientes: si veo un DNI, una historia clínica o un nombre, te aviso.',
 ].join('\n');
 
 const responder = (texto: string): Decision => ({ accion: 'responder', texto });
 
-function enlaceDe(m: Mensaje, texto: string): string | null {
+// Los offsets de Telegram son del texto original, sin recortar.
+function enlaceDe(m: Mensaje): string | null {
+  const texto: string = m.text ?? m.caption ?? '';
   for (const e of (m.entities ?? m.caption_entities ?? []) as any[]) {
     if (e.type === 'text_link' && e.url) return e.url;
     if (e.type === 'url') return texto.slice(e.offset, e.offset + e.length);
@@ -63,7 +66,7 @@ export function clasificar(m: Mensaje, sello: string): Decision {
   if (m.voice || m.audio) {
     const a = m.voice ?? m.audio;
     if (a.file_size > MAX_BYTES) return responder('Telegram solo me deja bajar archivos de hasta 20 MB.');
-    return { accion: 'encolar', tipo: 'voz', texto: '', voz: { file_id: a.file_id, duracion: a.duration ?? 0 } };
+    return { accion: 'encolar', tipo: 'voz', texto, voz: { file_id: a.file_id, duracion: a.duration ?? 0 } };
   }
 
   if (m.photo?.length) {
@@ -81,7 +84,7 @@ export function clasificar(m: Mensaje, sello: string): Decision {
   }
 
   if (m.text) {
-    const url = enlaceDe(m, texto);
+    const url = enlaceDe(m);
     if (url) {
       const comentario = texto.replace(url, '').trim();
       const palabras = comentario ? comentario.split(/\s+/).length : 0;
