@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "okt-telegram",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-06",
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+
+  // Cola de capturas para el segundo cerebro OKT.
+  // Crea el namespace con: npx wrangler kv namespace create COLA
+  // Los secretos (TELEGRAM_TOKEN, WEBHOOK_SECRET, OKT_TOKEN, CHAT_IDS) se configuran con wrangler secret.
+  "kv_namespaces": [
+    { "binding": "COLA", "id": "REEMPLAZA_CON_EL_ID_DE_TU_KV" }
+  ],
+
+  // Workers AI para transcripción de notas de voz con Whisper.
+  "ai": { "binding": "AI" },
+
+  "vars": {
+    "TZ": "America/Lima",
+    "WHISPER_MODEL": "@cf/openai/whisper-large-v3-turbo"
+  }
+}

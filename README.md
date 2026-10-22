@@ -24,7 +24,7 @@ El vault vive en la PC; Google Drive para escritorio solo lo respalda y nada esc
 | Nota de voz o audio (≤ 10 min) | Transcribe con Whisper de Workers AI (`@cf/openai/whisper-large-v3-turbo`, en español) y encola `tipo: voz` con el texto. El audio no se guarda. Si la transcripción falla, no encola y pide reenviar | Nota con la transcripción, marcada como automática |
 | Enlace (solo, o con un comentario de hasta 12 palabras) | Encola `tipo: enlace` con `url` | Nota «pendiente de ingerir» con la url, para la skill `capturar` |
 | Foto o documento (PDF u otro, ≤ 20 MB) con leyenda opcional | Encola `tipo: archivo` con el `file_id` de Telegram (el archivo se queda en Telegram: no hay R2) | El archivo en `40-Fuentes/adjuntos/telegram/` y una nota con `![[archivo]]` y la leyenda |
-| `/tarea <texto>` | Encola `tipo: tarea` | `- [ ] texto` bajo `## Tareas` de la nota diaria de hoy (`50-Diario/AAAA-MM-DD.md`) |
+| `/tarea <texto>` (o `/tarea` sola desde el menú: el bot pregunta y toma tu siguiente mensaje; igual con `/nota`) | Encola `tipo: tarea` | `- [ ] texto` bajo `## Tareas` de la nota diaria de hoy (`50-Diario/AAAA-MM-DD.md`) |
 | `/estado` | Responde cuántos elementos esperan | — |
 | `/start`, `/ayuda` | Responde qué puede guardar | — |
 

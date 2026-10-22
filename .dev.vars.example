@@ -1,0 +1,14 @@
+# Copia este archivo como .dev.vars y llena los valores. .dev.vars NUNCA se sube a GitHub.
+# Súbelos a Cloudflare con: npx wrangler secret bulk .dev.vars
+
+# Token que te proporciona @BotFather al crear el bot
+TELEGRAM_TOKEN=
+
+# Texto aleatorio de 16+ caracteres (letras, números, _ y -) para validar peticiones de Telegram
+WEBHOOK_SECRET=
+
+# Token largo y aleatorio para autenticar el CLI okt al leer la cola de capturas
+OKT_TOKEN=
+
+# IDs numéricos de Telegram autorizados, separados por comas (obtén el tuyo con: node scripts/setup.mjs chat-id)
+CHAT_IDS=
