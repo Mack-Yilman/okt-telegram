@@ -49,6 +49,8 @@ describe('webhook /telegram', () => {
     expect(elementoDe(kv)).toMatchObject({ sensible: true });
     expect(tg.enviados[0]!.text).toMatch(/un DNI/);
     expect(tg.enviados[0]!.text).toMatch(/okt telegram descartar/);
+    // El plugin solo fuerza los ids que se nombran.
+    expect(tg.enviados[0]!.text).toMatch(/okt telegram bajar --forzar 20261021T230500-0000000009/);
   });
 
   it('también revisa el nombre del archivo', async () => {
@@ -160,6 +162,22 @@ describe('webhook /telegram', () => {
     const r = await manejar(webhook(update(19, { text: 'hola' })), env, tg.fetchFn);
     expect(r.status).toBe(500);
     expect(tg.enviados).toHaveLength(0);
+  });
+
+  it('si KV falla después de /tarea, el reintento de Telegram sigue siendo una tarea', async () => {
+    const { env, kv } = fakeEnv();
+    const tg = fakeTelegram();
+    await manejar(webhook(update(50, { text: '/tarea' })), env, tg.fetchFn);
+    const put = kv.put.bind(kv);
+    kv.put = async (k: string, ...resto: unknown[]) => {
+      if (k.startsWith('cola:')) throw new Error('KV caído');
+      return (put as (...a: unknown[]) => Promise<void>)(k, ...resto);
+    };
+    expect((await manejar(webhook(update(51, { text: 'Comprar el libro' })), env, tg.fetchFn)).status).toBe(500);
+    kv.put = put;
+    await manejar(webhook(update(51, { text: 'Comprar el libro' })), env, tg.fetchFn);
+    expect(elementoDe(kv)).toMatchObject({ tipo: 'tarea', texto: 'Comprar el libro' });
+    expect(kv.m.has('espera:111')).toBe(false);
   });
 
   it('un cuerpo que no es JSON no rompe nada', async () => {
