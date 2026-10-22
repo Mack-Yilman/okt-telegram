@@ -74,6 +74,20 @@ Fuera de esta versión: buscar en el vault desde Telegram y responder con IA.
    okt telegram bajar
    ```
 
+## Capacidad y planes de Cloudflare
+
+- **Mensajes en cola:** sin límite práctico. Cada elemento ocupa menos de 1 KB en KV y cada mensaje hace 2
+  escrituras. Lo que no se baje en 30 días vence.
+- **Archivos:** no ocupan espacio en Cloudflare, porque se quedan en Telegram hasta que el plugin los pide. Cada
+  uno puede pesar hasta 20 MB (límite de descarga de la API de bots) y tarda unos 5 s en bajar. El plugin deja
+  para la siguiente bajada los que no alcanzan en su tope de tiempo.
+- **Notas de voz:** hasta 10 minutos. La transcripción convierte el audio a base64 con `Buffer` nativo
+  (`nodejs_compat`); en la prueba real, una nota de 2 minutos con la versión anterior en JavaScript gastó
+  43,6 ms de CPU.
+- **Plan gratuito:** alcanza para uso personal (1000 escrituras de KV al día, unos 500 mensajes, y cuota
+  diaria gratuita de Workers AI). El límite de 10 ms de CPU por petición admite excesos ocasionales; si mandas
+  muchas notas de voz largas, conviene **Workers Paid** (30 s de CPU, 1 millón de escrituras de KV al mes).
+
 ## Contrato de la cola
 
 - **Elemento**: `{ id, tipo: "nota"|"voz"|"enlace"|"archivo"|"tarea", texto, url?, archivo_key?, nombre?, mime?, fecha, chat_id, sensible? }`.
@@ -99,7 +113,6 @@ Comandos de desarrollo y verificación:
 - `npx tsc --noEmit`: comprobación de tipos.
 - `npm run types`: actualiza los tipos de Cloudflare tras modificar `wrangler.jsonc`.
 - `npx wrangler dev --var WEBHOOK_SECRET:… --var OKT_TOKEN:… --var CHAT_IDS:… --var TELEGRAM_TOKEN:…`: ejecuta el Worker localmente con KV local (Workers AI siempre conecta con la cuenta remota).
-- Plan gratuito de Cloudflare: suficiente para uso personal (KV admite 1.000 escrituras diarias y Workers AI cuenta con cuota gratuita diaria).
 
 ### Estructura de `src/`
 
