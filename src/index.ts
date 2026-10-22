@@ -8,13 +8,15 @@
 // Lo imprescindible (guardar en KV) va con await: nunca con ctx.waitUntil.
 
 import type { Env } from './env';
-import { clasificar, type Mensaje } from './clasificar';
+import { clasificar, type Espera, type Mensaje } from './clasificar';
 import { confirmar, contar, encolar, idDe, listar, marcarVisto, yaVisto, type Elemento } from './cola';
 import { fechaLocal, sello } from './fechas';
 import { patronSensible } from './sensibles';
 import { bearer, safeEqual } from './seguridad';
 import { esc, Telegram, TelegramError } from './telegram';
 import { MAX_SEGUNDOS, transcribir } from './voz';
+
+const TTL_ESPERA = 600; // /tarea sin texto espera el siguiente mensaje durante 10 minutos
 
 const ETIQUETA: Record<Elemento['tipo'], string> = { nota: 'nota', voz: 'nota de voz', enlace: 'enlace', archivo: 'archivo', tarea: 'tarea para tu diaria' };
 
@@ -97,7 +99,18 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
     }
   };
   const fecha = new Date((m.date ?? Date.now() / 1000) * 1000);
-  const decision = clasificar(m, sello(fecha, env.TZ));
+  const claveEspera = `espera:${chat}`;
+  const espera = (await env.COLA.get(claveEspera)) as Espera | null;
+  const decision = clasificar(m, sello(fecha, env.TZ), espera);
+  // Cualquier mensaje consume la espera de /tarea o /nota (o la cancela, si es un comando).
+  if (espera) await env.COLA.delete(claveEspera).catch(() => {});
+
+  if (decision.accion === 'esperar') {
+    await env.COLA.put(claveEspera, decision.tipo, { expirationTtl: TTL_ESPERA });
+    await avisar(decision.tipo === 'tarea' ? '¿Qué tarea agrego a tu nota diaria? Escríbela en tu próximo mensaje.' : '¿Qué nota guardo? Escríbela en tu próximo mensaje.');
+    await marcarVisto(env.COLA, updateId).catch(() => {});
+    return new Response('ok');
+  }
 
   if (decision.accion === 'responder' || decision.accion === 'estado') {
     const texto = decision.accion === 'estado' ? textoEstado(await contar(env.COLA)) : decision.texto;

@@ -118,6 +118,30 @@ describe('webhook /telegram', () => {
     expect(elementoDe(kv)).toMatchObject({ tipo: 'enlace', url: 'https://ejemplo.org/a' });
   });
 
+  it('/tarea sola (desde el menú) pregunta y toma el siguiente mensaje como tarea', async () => {
+    const { env, kv } = fakeEnv();
+    const tg = fakeTelegram();
+    await manejar(webhook(update(40, { text: '/tarea' })), env, tg.fetchFn);
+    expect(tg.enviados[0]!.text).toMatch(/Qué tarea/);
+    expect(colaDe(kv)).toHaveLength(0);
+    await manejar(webhook(update(41, { text: 'Comprar el libro' })), env, tg.fetchFn);
+    expect(elementoDe(kv)).toMatchObject({ tipo: 'tarea', texto: 'Comprar el libro' });
+    // La espera se consume: el mensaje siguiente vuelve a ser una nota.
+    await manejar(webhook(update(42, { text: 'Otra cosa' })), env, tg.fetchFn);
+    const tipos = colaDe(kv).map((k) => JSON.parse(kv.m.get(k)!.v).tipo);
+    expect(tipos).toEqual(['tarea', 'nota']);
+  });
+
+  it('un comando cancela la espera de /tarea', async () => {
+    const { env, kv } = fakeEnv();
+    const tg = fakeTelegram();
+    await manejar(webhook(update(43, { text: '/nota' })), env, tg.fetchFn);
+    await manejar(webhook(update(44, { text: '/estado' })), env, tg.fetchFn);
+    await manejar(webhook(update(45, { text: 'Texto suelto' })), env, tg.fetchFn);
+    expect(elementoDe(kv)).toMatchObject({ tipo: 'nota', texto: 'Texto suelto' });
+    expect(kv.m.has('espera:111')).toBe(false);
+  });
+
   it('/estado responde cuántos esperan', async () => {
     const { env } = fakeEnv();
     const tg = fakeTelegram();

@@ -12,7 +12,9 @@ describe('clasificar', () => {
   it('/nota y /tarea con texto; sin texto, explica el uso', () => {
     expect(clasificar(msg({ text: '/nota Una idea' }), SELLO)).toEqual({ accion: 'encolar', tipo: 'nota', texto: 'Una idea' });
     expect(clasificar(msg({ text: '/tarea@okt_bot Comprar libro' }), SELLO)).toEqual({ accion: 'encolar', tipo: 'tarea', texto: 'Comprar libro' });
-    expect(clasificar(msg({ text: '/tarea' }), SELLO)).toMatchObject({ accion: 'responder', texto: expect.stringContaining('/tarea') });
+    expect(clasificar(msg({ text: '/tarea' }), SELLO)).toEqual({ accion: 'esperar', tipo: 'tarea' });
+    expect(clasificar(msg({ text: 'Comprar libro' }), SELLO, 'tarea')).toEqual({ accion: 'encolar', tipo: 'tarea', texto: 'Comprar libro' });
+    expect(clasificar(msg({ text: 'https://ejemplo.org', entities: [{ type: 'url', offset: 0, length: 19 }] }), SELLO, 'nota')).toMatchObject({ tipo: 'nota' });
   });
 
   it('/estado, /start, /ayuda y comandos desconocidos', () => {

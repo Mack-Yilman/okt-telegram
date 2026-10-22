@@ -5,9 +5,12 @@ import type { Tipo } from './cola';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Mensaje = Record<string, any>;
 
+export type Espera = 'nota' | 'tarea';
+
 export type Decision =
   | { accion: 'responder'; texto: string }
   | { accion: 'estado' }
+  | { accion: 'esperar'; tipo: Espera }
   | {
       accion: 'encolar';
       tipo: Tipo;
@@ -47,7 +50,11 @@ function enlaceDe(m: Mensaje): string | null {
   return null;
 }
 
-export function clasificar(m: Mensaje, sello: string): Decision {
+/**
+ * `espera`: si el mensaje anterior fue /tarea o /nota sin texto (el menú de Telegram los envía así),
+ * el siguiente texto suelto se toma con ese tipo.
+ */
+export function clasificar(m: Mensaje, sello: string, espera: Espera | null = null): Decision {
   const texto: string = (m.text ?? m.caption ?? '').trim();
 
   const cmd = /^\/(\w+)(?:@\w+)?\s*([\s\S]*)$/.exec(texto);
@@ -55,7 +62,7 @@ export function clasificar(m: Mensaje, sello: string): Decision {
     const nombre = cmd[1]!.toLowerCase();
     const resto = cmd[2]!.trim();
     if (nombre === 'nota' || nombre === 'tarea') {
-      if (!resto) return responder(`Escribe el texto después del comando: <code>/${nombre} …</code>`);
+      if (!resto) return { accion: 'esperar', tipo: nombre };
       return { accion: 'encolar', tipo: nombre, texto: resto };
     }
     if (nombre === 'estado') return { accion: 'estado' };
@@ -82,6 +89,8 @@ export function clasificar(m: Mensaje, sello: string): Decision {
     const ext = mime === 'application/pdf' ? '.pdf' : '';
     return { accion: 'encolar', tipo: 'archivo', texto, archivo: { file_id: d.file_id, nombre: d.file_name ?? `documento ${sello}${ext}`, mime } };
   }
+
+  if (m.text && espera) return { accion: 'encolar', tipo: espera, texto };
 
   if (m.text) {
     const url = enlaceDe(m);
