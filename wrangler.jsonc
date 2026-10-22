@@ -3,6 +3,8 @@
   "name": "okt-telegram",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-06",
+  // nodejs_compat: Buffer nativo para pasar el audio a base64 sin gastar la CPU del plan gratuito.
+  "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true, "head_sampling_rate": 1 },
 
   // Cola de capturas para el segundo cerebro OKT.
