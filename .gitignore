@@ -1,0 +1,42 @@
+# Personales del proyecto
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+.claude/
+.agents/
+.gemini/
+.superpowers/
+
+# Secretos
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.key
+*.pem
+*.p12
+secrets/
+secrets*.json
+credenciales*
+*.token
+
+# Datos del usuario
+privado/
+
+# Wrangler, dependencias y generados
+.wrangler/
+wrangler.local.jsonc
+node_modules/
+dist/
+coverage/
+*.zip
+
+# Sistema
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+*.log
