@@ -25,11 +25,12 @@ el bot no escribe en el vault: deja todo en una cola y la PC la baja.
 |---|---|---|
 | Texto o `/nota <texto>` | Encola `tipo: nota` | `00 │ 📥 Bandeja/📲 AAAA-MM-DD HHmm <primeras palabras>.md` |
 | Nota de voz o audio (≤ 10 min) | Transcribe con Whisper de Workers AI (`@cf/openai/whisper-large-v3-turbo`, en español) y encola `tipo: voz` con el texto. El audio no se guarda. Si la transcripción falla, no encola y pide reenviar | Nota con la transcripción, marcada como automática |
-| Enlace (solo, o con un comentario de hasta 12 palabras) | Encola `tipo: enlace` con `url` | Nota «pendiente de ingerir» con la url, para la skill `capturar` |
+| Enlace (solo, o con un comentario de hasta 12 palabras) | Encola `tipo: enlace` con `url` | Captura con la url. Al abrir el vault, OKT (0.5.0 o superior) trae sola la página completa con sus imágenes, o la transcripción del video de YouTube, en segundo plano (`okt importar enlaces`) |
 | Foto o documento (PDF u otro, ≤ 20 MB) con leyenda opcional | Encola `tipo: archivo` con el `file_id` de Telegram (el archivo se queda en Telegram: no hay R2) | El archivo en `99 │ ⚙️ Sistema/📎 adjuntos/📲 telegram/` y una nota con `![[archivo]]` y la leyenda |
 | `/tarea <texto>` (o `/tarea` sola desde el menú: el bot pregunta y toma tu siguiente mensaje; igual con `/nota`) | Encola `tipo: tarea` | `- [ ] texto` bajo `## Tareas` de la nota diaria de hoy (`50 │ 📅 Diario/📅 AAAA-MM-DD.md`) |
 | `/estado` | Responde cuántos elementos esperan | — |
-| `/start`, `/ayuda` | Responde qué puede guardar | — |
+| `/start`, `/ayuda` | Responde qué puede guardar y sus límites, por secciones con emojis (los límites salen de las mismas constantes del código) | — |
+| Un video (no su enlace) | Responde que se mande el enlace de YouTube o de Drive | — |
 
 Cada captura guardada recibe un ✓ en el chat. Si no llega en un minuto, reenvíala.
 

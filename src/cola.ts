@@ -18,7 +18,7 @@ export interface Elemento {
 }
 
 const PREFIJO = 'cola:';
-const TTL_COLA = 30 * 86400;
+export const TTL_COLA = 30 * 86400;
 const TTL_VISTO = 86400;
 const ID_VALIDO = /^\d{8}T\d{6}-\d{10}$/;
 

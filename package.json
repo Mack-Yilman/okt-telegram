@@ -1,6 +1,6 @@
 {
   "name": "okt-telegram",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Bot de Telegram que encola capturas para el segundo cerebro OKT en Obsidian",
   "author": "Mack Chirinos",

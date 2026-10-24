@@ -8,14 +8,14 @@
 // Lo imprescindible (guardar en KV) va con await: nunca con ctx.waitUntil.
 
 import type { Env } from './env';
-import { clasificar, type Espera, type Mensaje } from './clasificar';
+import { MINUTOS_ESPERA, clasificar, type Espera, type Mensaje } from './clasificar';
 import { confirmar, contar, encolar, idDe, listar, marcarVisto, yaVisto, type Elemento } from './cola';
 import { fechaLocal, sello } from './fechas';
 import { bearer, safeEqual } from './seguridad';
 import { esc, Telegram, TelegramError } from './telegram';
 import { MAX_SEGUNDOS, transcribir } from './voz';
 
-const TTL_ESPERA = 600; // /tarea sin texto espera el siguiente mensaje durante 10 minutos
+const TTL_ESPERA = MINUTOS_ESPERA * 60; // /tarea o /nota sin texto esperan el siguiente mensaje
 
 const ETIQUETA: Record<Elemento['tipo'], string> = { nota: 'nota', voz: 'nota de voz', enlace: 'enlace', archivo: 'archivo', tarea: 'tarea para tu diaria' };
 
