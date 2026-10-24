@@ -42,23 +42,21 @@ describe('webhook /telegram', () => {
     expect(tg.enviados).toHaveLength(1);
   });
 
-  it('marca lo sensible, lo encola y avisa', async () => {
+  it('no filtra el contenido: un DNI se encola como cualquier nota', async () => {
     const { env, kv } = fakeEnv();
     const tg = fakeTelegram();
     await manejar(webhook(update(9, { text: 'Control DNI 45879632' })), env, tg.fetchFn);
-    expect(elementoDe(kv)).toMatchObject({ sensible: true });
-    expect(tg.enviados[0]!.text).toMatch(/un DNI/);
-    expect(tg.enviados[0]!.text).toMatch(/okt telegram descartar/);
-    // El plugin solo fuerza los ids que se nombran.
-    expect(tg.enviados[0]!.text).toMatch(/okt telegram bajar --forzar 20261021T230500-0000000009/);
+    expect(elementoDe(kv)).toMatchObject({ tipo: 'nota', texto: 'Control DNI 45879632' });
+    expect(elementoDe(kv)).not.toHaveProperty('sensible');
+    expect(tg.enviados[0]!.text).toBe('✓ En la bandeja (nota).');
   });
 
-  it('también revisa el nombre del archivo', async () => {
+  it('un archivo con nombres en el título también se encola sin aviso', async () => {
     const { env, kv } = fakeEnv();
     const tg = fakeTelegram();
     await manejar(webhook(update(30, { document: { file_id: 'd1', file_name: 'Paciente Juan Perez - HC 45892.pdf', mime_type: 'application/pdf' } })), env, tg.fetchFn);
-    expect(elementoDe(kv)).toMatchObject({ sensible: true });
-    expect(tg.enviados[0]!.text).toMatch(/datos de pacientes/);
+    expect(elementoDe(kv)).toMatchObject({ tipo: 'archivo', nombre: 'Paciente Juan Perez - HC 45892.pdf' });
+    expect(tg.enviados[0]!.text).toBe('✓ En la bandeja (archivo).');
   });
 
   it('una nota de voz con leyenda guarda la leyenda y la transcripción', async () => {
