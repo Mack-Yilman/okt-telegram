@@ -35,7 +35,6 @@ export const AYUDA = [
   '• <code>/estado</code>: cuántos elementos esperan.',
   '',
   'Cada captura guardada recibe un ✓. Si no llega en un minuto, reenvíala.',
-  'Sin datos de pacientes: si veo un DNI, una historia clínica o un nombre, te aviso.',
 ].join('\n');
 
 const responder = (texto: string): Decision => ({ accion: 'responder', texto });

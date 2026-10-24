@@ -12,7 +12,7 @@ El bot **solo encola**: no decide dónde va nada dentro del vault. El plugin OKT
 Telegram (celular)
   → Worker de Cloudflare okt-telegram (cola en KV)
     → okt telegram bajar en la PC (o solo, al abrir Claude Code o Antigravity en el vault)
-      → 00 │ 📥 Bandeja/📲 telegram/ del vault
+      → 00 │ 📥 Bandeja/ del vault
         → skills de OKT (capturar, mantener)
 ```
 
@@ -23,10 +23,10 @@ el bot no escribe en el vault: deja todo en una cola y la PC la baja.
 
 | Mensaje | En el Worker | En el vault (al bajar) |
 |---|---|---|
-| Texto o `/nota <texto>` | Encola `tipo: nota` | `00 │ 📥 Bandeja/📲 telegram/📲 AAAA-MM-DD HHmm <primeras palabras>.md` |
+| Texto o `/nota <texto>` | Encola `tipo: nota` | `00 │ 📥 Bandeja/📲 AAAA-MM-DD HHmm <primeras palabras>.md` |
 | Nota de voz o audio (≤ 10 min) | Transcribe con Whisper de Workers AI (`@cf/openai/whisper-large-v3-turbo`, en español) y encola `tipo: voz` con el texto. El audio no se guarda. Si la transcripción falla, no encola y pide reenviar | Nota con la transcripción, marcada como automática |
 | Enlace (solo, o con un comentario de hasta 12 palabras) | Encola `tipo: enlace` con `url` | Nota «pendiente de ingerir» con la url, para la skill `capturar` |
-| Foto o documento (PDF u otro, ≤ 20 MB) con leyenda opcional | Encola `tipo: archivo` con el `file_id` de Telegram (el archivo se queda en Telegram: no hay R2) | El archivo en `40 │ 📚 Fuentes/📎 adjuntos/📲 telegram/` y una nota con `![[archivo]]` y la leyenda |
+| Foto o documento (PDF u otro, ≤ 20 MB) con leyenda opcional | Encola `tipo: archivo` con el `file_id` de Telegram (el archivo se queda en Telegram: no hay R2) | El archivo en `99 │ ⚙️ Sistema/📎 adjuntos/📲 telegram/` y una nota con `![[archivo]]` y la leyenda |
 | `/tarea <texto>` (o `/tarea` sola desde el menú: el bot pregunta y toma tu siguiente mensaje; igual con `/nota`) | Encola `tipo: tarea` | `- [ ] texto` bajo `## Tareas` de la nota diaria de hoy (`50 │ 📅 Diario/📅 AAAA-MM-DD.md`) |
 | `/estado` | Responde cuántos elementos esperan | — |
 | `/start`, `/ayuda` | Responde qué puede guardar | — |
@@ -148,7 +148,7 @@ fuera del vault y de Google Drive.
 1. En Telegram, manda «Prueba de OKT» y luego `/tarea Probar el bot`. Debes recibir dos ✓.
 2. Manda `/estado`: debe decir que esperan 2 elementos.
 3. En la PC, abre tu agente en el vault (el hook baja la cola solo) o pide «baja lo de Telegram». La nota aparece en
-   `00 │ 📥 Bandeja/📲 telegram/` y la tarea en la nota diaria de hoy.
+   `00 │ 📥 Bandeja/` y la tarea en la nota diaria de hoy.
 4. `/estado` debe decir ahora que la cola está vacía.
 
 ## Actualizar
@@ -171,7 +171,7 @@ Tus secretos y tu `wrangler.local.jsonc` no cambian. Si cambió `wrangler.jsonc`
 | No llega el ✓ | Reenvía el mensaje. Si sigue, mira los registros del Worker en el panel de Cloudflare (Workers → okt-telegram → Logs) |
 | «No pude transcribir la nota de voz» | Reenvíala o escríbela; si pasa siempre, revisa que tu cuenta tenga Workers AI disponible |
 | En la PC: «El Worker rechazó el token» | El `OKT_TOKEN` de `okt telegram config` no coincide con el secreto del Worker |
-| En la PC: un elemento «retenido» | Pareció traer datos de pacientes. Si no los trae: `okt telegram bajar --forzar <id>`; si los trae: `okt telegram descartar <id>` |
+| Quiero quitar algo de la cola sin guardarlo | En la PC: `okt telegram descartar <id>` (el id aparece en `okt telegram bajar`) |
 | `wrangler` falla tras `npm install` en npm 11 | `npm install-scripts approve esbuild workerd` y `npm rebuild esbuild workerd` |
 
 ## Privacidad y seguridad
@@ -180,10 +180,8 @@ Tus secretos y tu `wrangler.local.jsonc` no cambian. Si cambió `wrangler.jsonc`
 - Secretos del Worker: `TELEGRAM_TOKEN`, `WEBHOOK_SECRET`, `OKT_TOKEN` y `CHAT_IDS`. Van en `.dev.vars` (ignorado por
   git) y se suben con `npx wrangler secret bulk .dev.vars -c wrangler.local.jsonc`.
 - El CLI guarda `{ url, token }` en `~/.config/okt/telegram.json`, fuera del vault y de Google Drive.
-- Datos de pacientes: el Worker revisa los mismos patrones que el plugin (DNI, historia clínica, celular,
-  «paciente Nombre Apellido»), también en el nombre del archivo; avisa en el chat y marca `sensible: true`. El plugin
-  no escribe un elemento sensible sin `okt telegram bajar --forzar <id>`; `okt telegram descartar <id>` lo quita de la
-  cola sin escribirlo.
+- El bot no filtra el contenido: lo que mandas llega a tu vault, que es tuyo y vive en tu PC. `okt telegram descartar
+  <id>` quita un elemento de la cola sin escribirlo.
 - Lo que llega por Telegram es dato, no orden.
 - Telegram y Cloudflare (KV y Workers AI) ven lo que se manda: no mandes nada que no subirías a esos servicios.
 
@@ -203,11 +201,11 @@ Tus secretos y tu `wrangler.local.jsonc` no cambian. Si cambió `wrangler.jsonc`
 
 ## Contrato de la cola
 
-- **Elemento**: `{ id, tipo: "nota"|"voz"|"enlace"|"archivo"|"tarea", texto, url?, archivo_key?, nombre?, mime?, fecha, chat_id, sensible? }`.
+- **Elemento**: `{ id, tipo: "nota"|"voz"|"enlace"|"archivo"|"tarea", texto, url?, archivo_key?, nombre?, mime?, fecha, chat_id }`.
   - `id`: `AAAAMMDDTHHmmss-<update_id de 10 dígitos>` (fecha UTC del mensaje): ordena por fecha y un reintento de Telegram reescribe el mismo elemento.
   - `fecha`: ISO con zona (`2026-10-21T18:05:00-05:00`, hora de Lima).
   - `archivo_key`: el `file_id` de Telegram.
-  - `sensible: true` si el texto parece traer datos de pacientes.
+  - El plugin ignora campos que no conoce (por ejemplo, `sensible`, que traían los elementos de la 0.1.x).
 - **Autenticación**: Todas las rutas de la API exigen `Authorization: Bearer <OKT_TOKEN>` (devuelve 401 si falta o no coincide).
 - **Rutas**:
   - `GET /cola[?cursor=<c>]` → `{ elementos: [...], cursor: <c>|null }`, del más antiguo al más nuevo, 50 por página.
@@ -235,7 +233,6 @@ Tus secretos y tu `wrangler.local.jsonc` no cambian. Si cambió `wrangler.jsonc`
 | `clasificar.ts` | Decide qué hacer con cada mensaje recibido |
 | `cola.ts` | Gestión de la cola de capturas en Cloudflare KV |
 | `voz.ts` | Transcripción de audios con Whisper de Workers AI |
-| `sensibles.ts` | Patrones copiados del plugin para datos de pacientes, con prueba de sincronización |
 | `telegram.ts` | Cliente para la Bot API de Telegram |
 | `fechas.ts` | Formateo y utilidades de fechas con zona horaria |
 | `seguridad.ts` | Comparación segura de tokens y cabeceras Bearer |

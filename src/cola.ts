@@ -15,7 +15,6 @@ export interface Elemento {
   mime?: string;
   fecha: string;
   chat_id: string;
-  sensible?: boolean;
 }
 
 const PREFIJO = 'cola:';

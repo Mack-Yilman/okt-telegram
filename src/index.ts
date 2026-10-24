@@ -11,7 +11,6 @@ import type { Env } from './env';
 import { clasificar, type Espera, type Mensaje } from './clasificar';
 import { confirmar, contar, encolar, idDe, listar, marcarVisto, yaVisto, type Elemento } from './cola';
 import { fechaLocal, sello } from './fechas';
-import { patronSensible } from './sensibles';
 import { bearer, safeEqual } from './seguridad';
 import { esc, Telegram, TelegramError } from './telegram';
 import { MAX_SEGUNDOS, transcribir } from './voz';
@@ -151,9 +150,6 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
   const el: Elemento = { id: idDe(Math.floor(fecha.getTime() / 1000), updateId), tipo: decision.tipo, texto, fecha: fechaLocal(fecha, env.TZ), chat_id: chat };
   if (decision.url) el.url = decision.url;
   if (decision.archivo) Object.assign(el, { archivo_key: decision.archivo.file_id, nombre: decision.archivo.nombre, mime: decision.archivo.mime });
-  // El nombre del archivo también puede traer datos de un paciente.
-  const sensible = patronSensible([texto, el.nombre ?? ''].join('\n'));
-  if (sensible) el.sensible = true;
 
   try {
     await encolar(env.COLA, el);
@@ -165,11 +161,7 @@ async function webhook(update: { update_id?: number; message?: Mensaje }, env: E
   }
   await consumirEspera();
 
-  if (sensible) {
-    await avisar(
-      `⚠️ Parece ${esc(sensible.que)}: el vault no guarda datos de pacientes. Quedó retenido en la cola: si no lo es, en la PC se escribe con <code>okt telegram bajar --forzar ${el.id}</code>; si lo es, quítalo con <code>okt telegram descartar ${el.id}</code>.`,
-    );
-  } else if (decision.voz) {
+  if (decision.voz) {
     const vista = texto.length > 300 ? `${texto.slice(0, 300)}…` : texto;
     await avisar(`✓ Transcrita y en la bandeja:\n<i>${esc(vista)}</i>`);
   } else {
