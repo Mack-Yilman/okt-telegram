@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clasificar } from '../src/clasificar';
+import { AYUDA, clasificar } from '../src/clasificar';
 
 const SELLO = '2026-10-21 1805';
 const msg = (m: Record<string, unknown>) => ({ message_id: 1, date: 0, chat: { id: 111 }, ...m });
@@ -22,6 +22,16 @@ describe('clasificar', () => {
     expect(clasificar(msg({ text: '/start' }), SELLO)).toMatchObject({ accion: 'responder', texto: expect.stringContaining('/tarea') });
     expect(clasificar(msg({ text: '/ayuda' }), SELLO)).toMatchObject({ accion: 'responder' });
     expect(clasificar(msg({ text: '/borrar todo' }), SELLO)).toMatchObject({ accion: 'responder', texto: expect.stringContaining('/ayuda') });
+  });
+
+  it('/ayuda dice los límites que aplica el código, y un video pide el enlace', () => {
+    expect(AYUDA).toContain('20 MB');
+    expect(AYUDA).toContain('10 min por nota de voz');
+    expect(AYUDA).toContain('30 días');
+    expect(AYUDA).toContain('hasta 12 palabras');
+    expect(AYUDA).toContain('Espero 10 min');
+    expect(AYUDA.length).toBeLessThan(4096); // límite de un mensaje de Telegram
+    expect(clasificar(msg({ video: { file_id: 'v' } }), SELLO)).toMatchObject({ accion: 'responder', texto: expect.stringContaining('mándame su enlace') });
   });
 
   it('un enlace con comentario corto → enlace; un texto largo con enlace → nota', () => {

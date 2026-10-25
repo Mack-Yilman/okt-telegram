@@ -1,6 +1,7 @@
 // Decide qué hacer con un mensaje de Telegram. Puro: no toca KV ni la red.
 
-import type { Tipo } from './cola';
+import { TTL_COLA, type Tipo } from './cola';
+import { MAX_SEGUNDOS } from './voz';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Mensaje = Record<string, any>;
@@ -22,19 +23,46 @@ export type Decision =
 
 const MAX_BYTES = 20 * 1024 * 1024; // límite de descarga de la Bot API
 const PALABRAS_COMENTARIO = 12; // un enlace con un comentario corto es un enlace; con más texto, una nota
+export const MINUTOS_ESPERA = 10; // /tarea o /nota sin texto esperan el siguiente mensaje
 
+const MB = MAX_BYTES / 1024 / 1024;
+const SIN_VIDEOS = 'Los videos no se guardan: mándame su enlace (YouTube o Drive).';
+
+// Los límites salen de las mismas constantes que los aplican, para que la ayuda no se desfase.
 export const AYUDA = [
-  '<b>OKT · captura al segundo cerebro</b>',
+  '<b>🧠 OKT · captura a tu segundo cerebro</b>',
   '',
-  'Mándame y lo dejo en la bandeja de tu vault (se baja a la PC con <code>okt telegram bajar</code> o al abrir Claude Code o Antigravity en el vault):',
-  '• Texto o <code>/nota texto</code>: una nota.',
-  '• Nota de voz: la transcribo y guardo el texto.',
-  '• Un enlace (web o YouTube): queda para ingerirlo con la skill capturar.',
-  '• Foto o PDF, con leyenda si quieres.',
-  '• <code>/tarea texto</code>: una tarea en tu nota diaria.',
-  '• <code>/estado</code>: cuántos elementos esperan.',
+  'Todo lo que me mandes queda en la 📥 Bandeja de tu vault. Se baja a la PC al abrir Claude Code o Antigravity en el vault, o con <code>okt telegram bajar</code>. Cada captura guardada recibe un ✓: si no llega en un minuto, reenvíala.',
   '',
-  'Cada captura guardada recibe un ✓. Si no llega en un minuto, reenvíala.',
+  '<b>📝 Notas</b>',
+  '• Escribe cualquier texto, o <code>/nota texto</code>.',
+  `• <code>/nota</code> o <code>/tarea</code> sin texto (desde el menú «/»): el siguiente mensaje se guarda así. Espero ${MINUTOS_ESPERA} min.`,
+  '',
+  '<b>✅ Tareas</b>',
+  '• <code>/tarea texto</code>: va a las tareas de tu nota diaria.',
+  '',
+  '<b>🎙️ Voz</b>',
+  `• Nota de voz o audio de hasta ${MAX_SEGUNDOS / 60} min: la transcribo y guardo solo el texto. Revisa nombres y cifras.`,
+  '',
+  '<b>🔗 Enlaces</b>',
+  `• Una web o un video de YouTube, solo o con un comentario corto (hasta ${PALABRAS_COMENTARIO} palabras). Al abrir el vault se trae sola la página completa con sus imágenes, o la transcripción del video.`,
+  '• Con más texto, se guarda como nota con el enlace dentro.',
+  '',
+  '<b>🖼️ Fotos y archivos</b>',
+  `• Fotos, PDF y otros archivos de hasta ${MB} MB, con leyenda si quieres.`,
+  '• Telegram comprime las fotos: para la calidad original, mándala como archivo.',
+  '• Un álbum llega como una captura por foto.',
+  '',
+  '<b>⚠️ Límites</b>',
+  `• ${MB} MB por archivo (límite de Telegram para los bots).`,
+  `• ${MAX_SEGUNDOS / 60} min por nota de voz: divide las más largas.`,
+  `• ${SIN_VIDEOS}`,
+  '• Un texto de más de 4096 caracteres llega partido en varias capturas.',
+  `• Lo que no se baje en ${TTL_COLA / 86400} días se borra de la cola.`,
+  '',
+  '<b>ℹ️ Comandos</b>',
+  '• <code>/estado</code>: cuántas capturas esperan en la cola.',
+  '• <code>/ayuda</code>: este mensaje.',
 ].join('\n');
 
 const responder = (texto: string): Decision => ({ accion: 'responder', texto });
@@ -101,5 +129,6 @@ export function clasificar(m: Mensaje, sello: string, espera: Espera | null = nu
     return { accion: 'encolar', tipo: 'nota', texto };
   }
 
+  if (m.video || m.video_note || m.animation) return responder(`${SIN_VIDEOS} Mira /ayuda.`);
   return responder('Todavía no guardo ese tipo de mensaje. Mira /ayuda.');
 }
